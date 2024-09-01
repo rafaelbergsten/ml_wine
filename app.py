@@ -4,6 +4,7 @@ import requests
 from flasgger import Swagger
 from dotenv import load_dotenv
 import os
+from bs4 import BeautifulSoup
 
 app = Flask(__name__)
 swagger = Swagger(app)
@@ -11,13 +12,33 @@ swagger = Swagger(app)
 app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
 jwt = JWTManager(app)
 
-def fetch_data_from_embrapa(url):
-    try:
-        response = requests.get(url)
-        response.raise_for_status()
-        return response.text
-    except requests.exceptions.RequestException as e:
-        return str(e), 500
+def extract_table_data(html_content):
+    soup = BeautifulSoup(html_content, 'html.parser')
+
+    tables = soup.find_all('table', {'class': 'tb_base tb_dados'})
+
+    extracted_data = []
+
+    for table in tables:
+        headers = [th.get_text(strip=True) for th in table.find('thead').find_all('th')]
+        rows = table.find('tbody').find_all('tr')
+
+        for row in rows:
+            cells = row.find_all('td')
+            if len(cells) == len(headers):
+                row_data = {headers[i]: cells[i].get_text(strip=True) for i in range(len(headers))}
+                extracted_data.append(row_data)
+
+    return extracted_data
+
+def fetch_and_process_data(url):
+    response = requests.get(url)
+    if response.status_code == 200:
+        html_content = response.text
+        sanitized_data = extract_table_data(html_content)
+        return sanitized_data
+    else:
+        return {"error": "Failed to retrieve data"}
 
 # Endpoint para dados de Produção
 @app.route('/api/producao', methods=['GET'])
@@ -37,7 +58,7 @@ def producao():
               description: The data returned from Embrapa
     """
     url = os.getenv('EMBRAPA_URL_PRODUCAO')
-    data = fetch_data_from_embrapa(url)
+    data = fetch_and_process_data(url)
     return jsonify({"data": data})
 
 # Endpoint para dados de Processamento
@@ -58,7 +79,7 @@ def processamento():
               description: The data returned from Embrapa
     """
     url = os.getenv('EMBRAPA_URL_PROCESSAMENTO')
-    data = fetch_data_from_embrapa(url)
+    data = fetch_and_process_data(url)
     return jsonify({"data": data})
 
 # Endpoint para dados de Comercialização
@@ -79,7 +100,7 @@ def comercializacao():
               description: The data returned from Embrapa
     """
     url = os.getenv('EMBRAPA_URL_COMERCIALIZACAO')
-    data = fetch_data_from_embrapa(url)
+    data = fetch_and_process_data(url)
     return jsonify({"data": data})
 
 # Endpoint para dados de Importação
@@ -100,7 +121,7 @@ def importacao():
               description: The data returned from Embrapa
     """
     url = os.getenv('EMBRAPA_URL_IMPORTACAO')
-    data = fetch_data_from_embrapa(url)
+    data = fetch_and_process_data(url)
     return jsonify({"data": data})
 
 # Endpoint para dados de Exportação
@@ -121,7 +142,7 @@ def exportacao():
               description: The data returned from Embrapa
     """
     url = os.getenv('EMBRAPA_URL_EXPORTACAO')
-    data = fetch_data_from_embrapa(url)
+    data = fetch_and_process_data(url)
     return jsonify({"data": data})
 
 if __name__ == '__main__':
