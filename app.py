@@ -8,8 +8,7 @@ import os
 app = Flask(__name__)
 swagger = Swagger(app)
 
-# Configuração do JWT
-app.config['JWT_SECRET_KEY'] = '5497964600885a11c763b74b53dcc09e1793376b2876f8b50e56b5d0d02a8320'
+app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
 jwt = JWTManager(app)
 
 def fetch_data_from_embrapa(url):
