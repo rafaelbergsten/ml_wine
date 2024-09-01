@@ -4,6 +4,7 @@ from logging.handlers import RotatingFileHandler
 
 import requests
 from bs4 import BeautifulSoup
+from dotenv import load_dotenv
 from flasgger import Swagger
 from flask import Flask, jsonify
 from flask_jwt_extended import JWTManager, jwt_required
@@ -11,6 +12,7 @@ from flask_jwt_extended import JWTManager, jwt_required
 app = Flask(__name__)
 swagger = Swagger(app)
 
+load_dotenv()
 app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
 jwt = JWTManager(app)
 
